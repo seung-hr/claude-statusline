@@ -11,7 +11,7 @@ A custom status line for [Claude Code](https://claude.com/claude-code) that disp
 | Segment | Description |
 |---------|-------------|
 | **Model** | Current model name (e.g., Opus 4.6) |
-| **CWD** | Current working directory (with `~` for home) |
+| **CWD** | Current working folder name |
 | **Tokens** | Used / total context window tokens |
 | **% Used / Remain** | Context window usage percentage |
 | **Thinking** | Whether extended thinking is enabled |
