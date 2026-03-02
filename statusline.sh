@@ -101,6 +101,15 @@ fi
 # ===== Build single-line output =====
 out=""
 out+="${blue}${model_name}${reset}"
+
+# Current working directory
+cwd=$(echo "$input" | jq -r '.cwd // empty')
+if [ -n "$cwd" ]; then
+    display_dir="${cwd/#$HOME/\~}"
+    out+=" ${dim}|${reset} "
+    out+="${cyan}${display_dir}${reset}"
+fi
+
 out+=" ${dim}|${reset} "
 out+="${orange}${used_tokens}/${total_tokens}${reset}"
 out+=" ${dim}|${reset} "

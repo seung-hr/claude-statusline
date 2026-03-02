@@ -11,6 +11,7 @@ A custom status line for [Claude Code](https://claude.com/claude-code) that disp
 | Segment | Description |
 |---------|-------------|
 | **Model** | Current model name (e.g., Opus 4.6) |
+| **CWD** | Current working directory (with `~` for home) |
 | **Tokens** | Used / total context window tokens |
 | **% Used / Remain** | Context window usage percentage |
 | **Thinking** | Whether extended thinking is enabled |
@@ -57,12 +58,6 @@ Claude Code will save the script and configure `settings.json` for you automatic
    ```
 
 3. Restart Claude Code.
-
-## Cross-platform support
-
-The script works on both macOS and Linux:
-- **macOS**: Uses Keychain for OAuth token retrieval and BSD `date` for time formatting
-- **Linux**: Supports credentials file and GNOME Keyring, uses GNU `date`
 
 ## Caching
 
