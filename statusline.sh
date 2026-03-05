@@ -49,6 +49,9 @@ usage_color() {
     fi
 }
 
+# Resolve config directory: CLAUDE_CONFIG_DIR (set by alias) or default ~/.claude
+config_dir="${CLAUDE_CONFIG_DIR:-$HOME/.claude}"
+
 # ===== Extract data from JSON =====
 model_name=$(echo "$input" | jq -r '.model.display_name // "Claude"')
 
@@ -75,9 +78,9 @@ pct_remain=$(( 100 - pct_used ))
 used_comma=$(format_commas $current)
 remain_comma=$(format_commas $(( size - current )))
 
-# Check reasoning effort
-settings_path="$HOME/.claude/settings.json"
-effort_level="high"
+# Check reasoning effort (PR #4: default to medium instead of high)
+settings_path="${config_dir}/settings.json"
+effort_level="medium"
 if [ -n "$CLAUDE_CODE_EFFORT_LEVEL" ]; then
     effort_level="$CLAUDE_CODE_EFFORT_LEVEL"
 elif [ -f "$settings_path" ]; then
@@ -138,7 +141,7 @@ get_oauth_token() {
     fi
 
     # 3. Linux credentials file
-    local creds_file="${HOME}/.claude/.credentials.json"
+    local creds_file="${config_dir}/.credentials.json"
     if [ -f "$creds_file" ]; then
         token=$(jq -r '.claudeAiOauth.accessToken // empty' "$creds_file" 2>/dev/null)
         if [ -n "$token" ] && [ "$token" != "null" ]; then
@@ -164,7 +167,8 @@ get_oauth_token() {
 }
 
 # ===== LINE 2 & 3: Usage limits with progress bars (cached) =====
-cache_file="/tmp/claude/statusline-usage-cache.json"
+config_dir_hash=$(echo -n "$config_dir" | md5sum | cut -c1-8)
+cache_file="/tmp/claude/statusline-usage-cache-${config_dir_hash}.json"
 cache_max_age=60  # seconds between API calls
 mkdir -p /tmp/claude
 
@@ -193,7 +197,7 @@ if $needs_refresh; then
             -H "anthropic-beta: oauth-2025-04-20" \
             -H "User-Agent: claude-code/2.1.34" \
             "https://api.anthropic.com/api/oauth/usage" 2>/dev/null)
-        if [ -n "$response" ] && echo "$response" | jq . >/dev/null 2>&1; then
+        if [ -n "$response" ] && echo "$response" | jq -e '.five_hour' >/dev/null 2>&1; then
             usage_data="$response"
             echo "$response" > "$cache_file"
         fi
@@ -240,34 +244,39 @@ iso_to_epoch() {
     return 1
 }
 
-# Format ISO reset time to compact local time
+# Format ISO reset time to compact local time (PR #2: fixed for Linux/WSL)
 # Usage: format_reset_time <iso_string> <style: time|datetime|date>
 format_reset_time() {
     local iso_str="$1"
     local style="$2"
-    [ -z "$iso_str" ] || [ "$iso_str" = "null" ] && return
+    { [ -z "$iso_str" ] || [ "$iso_str" = "null" ]; } && return
 
     # Parse ISO datetime and convert to local time (cross-platform)
     local epoch
     epoch=$(iso_to_epoch "$iso_str")
     [ -z "$epoch" ] && return
 
-    # Format based on style (try BSD date first, then GNU date)
-    # BSD date uses %p (uppercase AM/PM), so convert to lowercase
+    # Format based on style
+    # Try GNU date first (Linux), then BSD date (macOS)
+    # Previous implementation piped BSD date through sed/tr, which always returned
+    # exit code 0 from the last pipe stage, preventing the GNU date fallback from
+    # ever executing on Linux.
+    local formatted=""
     case "$style" in
         time)
-            date -j -r "$epoch" +"%l:%M%p" 2>/dev/null | sed 's/^ //' | tr '[:upper:]' '[:lower:]' || \
-            date -d "@$epoch" +"%l:%M%P" 2>/dev/null | sed 's/^ //'
+            formatted=$(date -d "@$epoch" +"%H:%M" 2>/dev/null) || \
+            formatted=$(date -j -r "$epoch" +"%H:%M" 2>/dev/null)
             ;;
         datetime)
-            date -j -r "$epoch" +"%b %-d, %l:%M%p" 2>/dev/null | sed 's/  / /g; s/^ //' | tr '[:upper:]' '[:lower:]' || \
-            date -d "@$epoch" +"%b %-d, %l:%M%P" 2>/dev/null | sed 's/  / /g; s/^ //'
+            formatted=$(date -d "@$epoch" +"%b %-d, %H:%M" 2>/dev/null) || \
+            formatted=$(date -j -r "$epoch" +"%b %-d, %H:%M" 2>/dev/null)
             ;;
         *)
-            date -j -r "$epoch" +"%b %-d" 2>/dev/null | tr '[:upper:]' '[:lower:]' || \
-            date -d "@$epoch" +"%b %-d" 2>/dev/null
+            formatted=$(date -d "@$epoch" +"%b %-d" 2>/dev/null) || \
+            formatted=$(date -j -r "$epoch" +"%b %-d" 2>/dev/null)
             ;;
     esac
+    [ -n "$formatted" ] && echo "$formatted"
 }
 
 sep=" ${dim}|${reset} "
