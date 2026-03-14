@@ -75,8 +75,11 @@ pct_remain=$(( 100 - pct_used ))
 used_comma=$(format_commas $current)
 remain_comma=$(format_commas $(( size - current )))
 
+# Config directory (respects CLAUDE_CONFIG_DIR override)
+claude_config_dir="${CLAUDE_CONFIG_DIR:-$HOME/.claude}"
+
 # Check reasoning effort
-settings_path="$HOME/.claude/settings.json"
+settings_path="$claude_config_dir/settings.json"
 effort_level="medium"
 if [ -n "$CLAUDE_CODE_EFFORT_LEVEL" ]; then
     effort_level="$CLAUDE_CODE_EFFORT_LEVEL"
@@ -138,7 +141,7 @@ get_oauth_token() {
     fi
 
     # 3. Linux credentials file
-    local creds_file="${HOME}/.claude/.credentials.json"
+    local creds_file="${claude_config_dir}/.credentials.json"
     if [ -f "$creds_file" ]; then
         token=$(jq -r '.claudeAiOauth.accessToken // empty' "$creds_file" 2>/dev/null)
         if [ -n "$token" ] && [ "$token" != "null" ]; then

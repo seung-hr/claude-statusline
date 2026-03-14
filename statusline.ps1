@@ -75,12 +75,15 @@ $pctRemain = 100 - $pctUsed
 $usedComma   = Format-Commas $current
 $remainComma = Format-Commas ($size - $current)
 
+# Config directory (respects CLAUDE_CONFIG_DIR override)
+$claudeConfigDir = if ($env:CLAUDE_CONFIG_DIR) { $env:CLAUDE_CONFIG_DIR } else { Join-Path $env:USERPROFILE ".claude" }
+
 # Check reasoning effort
 $effortLevel = "medium"
 if ($env:CLAUDE_CODE_EFFORT_LEVEL) {
     $effortLevel = $env:CLAUDE_CODE_EFFORT_LEVEL
 } else {
-    $settingsPath = Join-Path $env:USERPROFILE ".claude\settings.json"
+    $settingsPath = Join-Path $claudeConfigDir "settings.json"
     if (Test-Path $settingsPath) {
         try {
             $settings = Get-Content $settingsPath -Raw | ConvertFrom-Json
@@ -153,7 +156,7 @@ function Get-OAuthToken {
     } catch {}
 
     # 3. Credentials file (cross-platform fallback)
-    $credsFile = Join-Path $env:USERPROFILE ".claude\.credentials.json"
+    $credsFile = Join-Path $claudeConfigDir ".credentials.json"
     if (Test-Path $credsFile) {
         try {
             $creds = Get-Content $credsFile -Raw | ConvertFrom-Json
