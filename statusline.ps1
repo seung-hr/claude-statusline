@@ -311,18 +311,18 @@ if ($versionNeedsRefresh) {
     } catch {}
 }
 
+$updateLine = ""
 if ($versionData) {
     try {
         $vcParsed = if ($versionData -is [string]) { $versionData | ConvertFrom-Json } else { $versionData }
         $latestTag = $vcParsed.tag_name
         if ($latestTag -and (Test-VersionGreaterThan $latestTag $VERSION)) {
-            $releaseUrl = if ($vcParsed.html_url) { $vcParsed.html_url } else { "https://github.com/daniel3303/ClaudeCodeStatusLine/releases/latest" }
-            $out += "${sep}${dim}${esc}]8;;${releaseUrl}${esc}\update: ${latestTag}${esc}]8;;${esc}\${reset}"
+            $updateLine = "`n${dim}Update available: ${latestTag} → https://github.com/daniel3303/ClaudeCodeStatusLine${reset}"
         }
     } catch {}
 }
 
-# Output single line
-Write-Host -NoNewline $out
+# Output
+Write-Host -NoNewline "$out$updateLine"
 
 exit 0

@@ -109,7 +109,15 @@ Usage data from the Anthropic API is cached for 60 seconds at `/tmp/claude/statu
 
 ## Update Notifications
 
-The status line checks GitHub for new releases once every 24 hours. When a newer version is available, a dim clickable `update: vX.Y.Z` link appears at the end of the status line, opening the release page in your browser. The check is cached at `/tmp/claude/statusline-version-cache.json` (or `%TEMP%\claude\...` on Windows) and fails silently if the API is unreachable or no release has been published.
+The status line checks GitHub for new releases once every 24 hours. When a newer version is available, a second line appears below the status line showing the new version and a link to the repository. The check is cached at `/tmp/claude/statusline-version-cache.json` (or `%TEMP%\claude\...` on Windows) and fails silently if the API is unreachable or no release has been published.
+
+## How to Update
+
+When the status line shows an update is available, visit the [repository](https://github.com/daniel3303/ClaudeCodeStatusLine), copy the contents of `statusline.sh` (or `statusline.ps1` on Windows), and paste it into Claude Code with the prompt:
+
+> Use this script as my status bar
+
+Claude Code will replace the script and restart the status line automatically.
 
 ## License
 

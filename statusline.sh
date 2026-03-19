@@ -364,16 +364,15 @@ if $version_needs_refresh; then
     fi
 fi
 
+update_line=""
 if [ -n "$version_data" ]; then
     latest_tag=$(echo "$version_data" | jq -r '.tag_name // empty')
     if [ -n "$latest_tag" ] && version_gt "$latest_tag" "$VERSION"; then
-        release_url=$(echo "$version_data" | jq -r '.html_url // empty')
-        [ -z "$release_url" ] && release_url="https://github.com/daniel3303/ClaudeCodeStatusLine/releases/latest"
-        out+="${sep}${dim}\033]8;;${release_url}\007update: ${latest_tag}\033]8;;\007${reset}"
+        update_line="\n${dim}Update available: ${latest_tag} → https://github.com/daniel3303/ClaudeCodeStatusLine${reset}"
     fi
 fi
 
-# Output single line
-printf "%b" "$out"
+# Output
+printf "%b" "$out$update_line"
 
 exit 0
