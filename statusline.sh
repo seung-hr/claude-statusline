@@ -128,9 +128,10 @@ out+="${orange}${used_tokens}/${total_tokens}${reset} ${dim}(${reset}${green}${p
 out+=" ${dim}|${reset} "
 out+="effort: "
 case "$effort_level" in
-    low)    out+="${dim}low${reset}" ;;
+    low)    out+="${dim}${effort_level}${reset}" ;;
     medium) out+="${orange}med${reset}" ;;
-    *)      out+="${green}high${reset}" ;;
+    max)    out+="${red}${effort_level}${reset}" ;;
+    *)      out+="${green}${effort_level}${reset}" ;;
 esac
 
 # ===== Cross-platform OAuth token resolution (from statusline.sh) =====
