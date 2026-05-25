@@ -1,6 +1,6 @@
 # Source: https://github.com/daniel3303/ClaudeCodeStatusLine
 
-$VERSION = "1.4.3"
+$VERSION = "1.4.4"
 # Single line: Model | tokens | %used | %remain | think | 5h bar @reset | 7d bar @reset | extra
 
 # Read input from stdin
@@ -443,52 +443,51 @@ if ($effectiveBuiltin) {
 }
 
 # ===== Update check (cached, 24h TTL) =====
-$versionCacheFile = Join-Path $cacheDir "statusline-version-cache.json"
-$versionCacheMaxAge = 86400  # 24 hours
-
-$versionNeedsRefresh = $true
-$versionData = $null
-
-if (Test-Path $versionCacheFile) {
-    $vcMtime = (Get-Item $versionCacheFile).LastWriteTime
-    $vcAge = ((Get-Date) - $vcMtime).TotalSeconds
-    if ($vcAge -lt $versionCacheMaxAge) {
-        $versionNeedsRefresh = $false
-    }
-    $versionData = Get-Content $versionCacheFile -Raw
-}
-
-if ($versionNeedsRefresh) {
-    # Touch cache immediately (thundering herd protection)
-    if (Test-Path $versionCacheFile) {
-        (Get-Item $versionCacheFile).LastWriteTime = Get-Date
-    } else {
-        New-Item -ItemType File -Path $versionCacheFile -Force | Out-Null
-    }
-    try {
-        $vcResponse = Invoke-RestMethod -Uri "https://api.github.com/repos/daniel3303/ClaudeCodeStatusLine/releases/latest" `
-            -Headers @{ "Accept" = "application/vnd.github+json" } -Method Get -TimeoutSec 5 -ErrorAction Stop
-        $versionData = $vcResponse | ConvertTo-Json -Depth 10
-        $versionData | Set-Content $versionCacheFile -Force
-    } catch {
-        # Fetch failed — if the cache has no usable content, drop the empty
-        # stampede lock so the next render retries instead of the fresh mtime
-        # suppressing update checks for the full 24h TTL.
-        if ((Test-Path $versionCacheFile) -and (Get-Item $versionCacheFile).Length -eq 0) {
-            Remove-Item $versionCacheFile -Force -ErrorAction SilentlyContinue
-        }
-    }
-}
-
+# Set STATUSLINE_CHECK_UPDATES=false to disable the update check (no network calls).
 $updateLine = ""
-if ($versionData) {
-    try {
-        $vcParsed = if ($versionData -is [string]) { $versionData | ConvertFrom-Json } else { $versionData }
-        $latestTag = $vcParsed.tag_name
-        if ($latestTag -and (Test-VersionGreaterThan $latestTag $VERSION)) {
-            $updateLine = "`n${dim}Update available: ${latestTag} → Tell Claude: `"Find my installed status bar and update it`"${reset}"
+if ($env:STATUSLINE_CHECK_UPDATES -ne "false") {
+    $versionCacheFile = Join-Path $cacheDir "statusline-version-cache.json"
+    $versionCacheMaxAge = 86400  # 24 hours
+
+    $versionNeedsRefresh = $true
+    $versionData = $null
+
+    if (Test-Path $versionCacheFile) {
+        $vcMtime = (Get-Item $versionCacheFile).LastWriteTime
+        $vcAge = ((Get-Date) - $vcMtime).TotalSeconds
+        if ($vcAge -lt $versionCacheMaxAge) {
+            $versionNeedsRefresh = $false
         }
-    } catch {}
+        $versionData = Get-Content $versionCacheFile -Raw
+    }
+
+    if ($versionNeedsRefresh) {
+        if (Test-Path $versionCacheFile) {
+            (Get-Item $versionCacheFile).LastWriteTime = Get-Date
+        } else {
+            New-Item -ItemType File -Path $versionCacheFile -Force | Out-Null
+        }
+        try {
+            $vcResponse = Invoke-RestMethod -Uri "https://api.github.com/repos/daniel3303/ClaudeCodeStatusLine/releases/latest" `
+                -Headers @{ "Accept" = "application/vnd.github+json" } -Method Get -TimeoutSec 5 -ErrorAction Stop
+            $versionData = $vcResponse | ConvertTo-Json -Depth 10
+            $versionData | Set-Content $versionCacheFile -Force
+        } catch {
+            if ((Test-Path $versionCacheFile) -and (Get-Item $versionCacheFile).Length -eq 0) {
+                Remove-Item $versionCacheFile -Force -ErrorAction SilentlyContinue
+            }
+        }
+    }
+
+    if ($versionData) {
+        try {
+            $vcParsed = if ($versionData -is [string]) { $versionData | ConvertFrom-Json } else { $versionData }
+            $latestTag = $vcParsed.tag_name
+            if ($latestTag -and (Test-VersionGreaterThan $latestTag $VERSION)) {
+                $updateLine = "`n${dim}Update available: ${latestTag} → Tell Claude: `"Find my installed status bar and update it`"${reset}"
+            }
+        } catch {}
+    }
 }
 
 # Append CLI version as last segment
