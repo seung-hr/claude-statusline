@@ -110,9 +110,34 @@ elif [ -f "$settings_path" ]; then
 fi
 [ -z "$effort_level" ] && effort_level="medium"
 
+# ===== Claude CLI version (cached, 1h TTL) =====
+cli_version_cache="/tmp/claude/statusline-cli-version"
+cli_version=""
+cli_version_max_age=3600
+
+if [ -f "$cli_version_cache" ]; then
+    cv_mtime=$(stat -c %Y "$cli_version_cache" 2>/dev/null || stat -f %m "$cli_version_cache" 2>/dev/null)
+    cv_now=$(date +%s)
+    cv_age=$(( cv_now - cv_mtime ))
+    if [ "$cv_age" -lt "$cli_version_max_age" ]; then
+        cli_version=$(cat "$cli_version_cache" 2>/dev/null)
+    fi
+fi
+
+if [ -z "$cli_version" ]; then
+    cli_version=$(claude --version 2>/dev/null | awk '{print $1}')
+    if [ -n "$cli_version" ]; then
+        mkdir -p /tmp/claude 2>/dev/null
+        echo "$cli_version" > "$cli_version_cache"
+    fi
+fi
+
 # ===== Build single-line output =====
 out=""
 out+="${blue}${model_name}${reset}"
+if [ -n "$cli_version" ]; then
+    out+=" ${dim}v${cli_version}${reset}"
+fi
 
 # Current working directory
 cwd=$(echo "$input" | jq -r '.cwd // empty')

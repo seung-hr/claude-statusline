@@ -114,9 +114,39 @@ if ($data.effort.level) {
 }
 if (-not $effortLevel) { $effortLevel = "medium" }
 
+# ===== Claude CLI version (cached, 1h TTL) =====
+$cacheDir = Join-Path $env:TEMP "claude"
+$cliVersionCache = Join-Path $cacheDir "statusline-cli-version"
+$cliVersion = $null
+$cliVersionMaxAge = 3600
+
+if (Test-Path $cliVersionCache) {
+    $cvMtime = (Get-Item $cliVersionCache).LastWriteTime
+    $cvAge = ((Get-Date) - $cvMtime).TotalSeconds
+    if ($cvAge -lt $cliVersionMaxAge) {
+        $cliVersion = (Get-Content $cliVersionCache -Raw).Trim()
+    }
+}
+
+if (-not $cliVersion) {
+    try {
+        $cvOutput = & claude --version 2>$null
+        if ($cvOutput) {
+            $cliVersion = ($cvOutput -split '\s')[0]
+            if ($cliVersion) {
+                if (-not (Test-Path $cacheDir)) { New-Item -ItemType Directory -Path $cacheDir -Force | Out-Null }
+                $cliVersion | Set-Content $cliVersionCache -Force
+            }
+        }
+    } catch {}
+}
+
 # ===== Build single-line output =====
 $out = ""
 $out += "${blue}${modelName}${reset}"
+if ($cliVersion) {
+    $out += " ${dim}v${cliVersion}${reset}"
+}
 
 # Current working directory
 $cwd = $data.cwd
