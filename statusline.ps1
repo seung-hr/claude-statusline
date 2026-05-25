@@ -144,9 +144,6 @@ if (-not $cliVersion) {
 # ===== Build single-line output =====
 $out = ""
 $out += "${blue}${modelName}${reset}"
-if ($cliVersion) {
-    $out += " ${dim}v${cliVersion}${reset}"
-}
 
 # Current working directory
 $cwd = $data.cwd
@@ -492,6 +489,11 @@ if ($versionData) {
             $updateLine = "`n${dim}Update available: ${latestTag} → Tell Claude: `"Find my installed status bar and update it`"${reset}"
         }
     } catch {}
+}
+
+# Append CLI version as last segment
+if ($cliVersion) {
+    $out += " ${dim}|${reset} ${orange}v${cliVersion}${reset}"
 }
 
 # Output

@@ -135,9 +135,6 @@ fi
 # ===== Build single-line output =====
 out=""
 out+="${blue}${model_name}${reset}"
-if [ -n "$cli_version" ]; then
-    out+=" ${dim}v${cli_version}${reset}"
-fi
 
 # Current working directory
 cwd=$(echo "$input" | jq -r '.cwd // empty')
@@ -510,6 +507,11 @@ if [ -n "$version_data" ]; then
     if [ -n "$latest_tag" ] && version_gt "$latest_tag" "$VERSION"; then
         update_line="\n${dim}Update available: ${latest_tag} → Tell Claude: \"Find my installed status bar and update it\"${reset}"
     fi
+fi
+
+# Append CLI version as last segment
+if [ -n "$cli_version" ]; then
+    out+=" ${dim}|${reset} ${orange}v${cli_version}${reset}"
 fi
 
 # Output
