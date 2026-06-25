@@ -2,6 +2,8 @@
 
 A custom status line for [Claude Code](https://claude.com/claude-code) that displays model info, token usage, rate limits, and reset times in a single compact line. It runs as an external shell command, so it does not slow down Claude Code or consume any extra tokens.
 
+> Fork of [daniel3303/ClaudeCodeStatusLine](https://github.com/daniel3303/ClaudeCodeStatusLine) with Windows/PowerShell hardening: reads stdin as UTF-8 and repairs Claude Code's invalid JSON escaping so the line no longer degrades to `Claude | 0%` when the working directory contains non-ASCII (e.g. Korean) folder names, plus reduced statusline flicker by skipping the blocking usage API call when Claude Code already provides rate limits.
+
 ## Screenshot
 
 ![Status Line Screenshot](screenshot.png)
@@ -25,7 +27,7 @@ Usage percentages are color-coded: green (<50%) → yellow (≥50%) → orange (
 
 Ask Claude Code:
 
-> Clone https://github.com/daniel3303/ClaudeCodeStatusLine to `~/.claude/statusline/` (or `%USERPROFILE%\.claude\statusline\` on Windows) and configure it as my status bar by following its INSTALL.md.
+> Clone https://github.com/seung-hr/claude-statusline to `~/.claude/statusline/` (or `%USERPROFILE%\.claude\statusline\` on Windows) and configure it as my status bar by following its INSTALL.md.
 
 Claude will clone the repo to that path, pick the right script for your OS, and update `settings.json`. Full step-by-step instructions Claude follows live in [INSTALL.md](INSTALL.md).
 
