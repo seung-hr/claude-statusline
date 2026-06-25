@@ -1,13 +1,25 @@
 # Source: https://github.com/daniel3303/ClaudeCodeStatusLine
-[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
-
 $VERSION = "1.4.4"
 # Single line: Model | tokens | %used | %remain | think | 5h bar @reset | 7d bar @reset | extra
 
-# Read input from stdin
-$input = @($Input) -join "`n"
+# Read stdin as UTF-8 FIRST — before setting OutputEncoding. Setting OutputEncoding
+# reinitializes the console streams and leaves [Console]::In empty, so the read must happen
+# first. InputEncoding must be UTF-8 so non-ASCII paths in Claude Code's JSON aren't lossily
+# mangled by the console input code page (e.g. CP949 on Korean Windows), which would corrupt
+# the JSON structure and degrade the line to "Claude | 0%".
+# NOTE: read stdin via [Console]::In, NOT the $input automatic variable. Referencing $input /
+# $Input ANYWHERE in the script makes PowerShell bind the pipeline-input enumerator, which
+# drains stdin and leaves [Console]::In empty. So this file must never mention $input/$Input.
+try { [Console]::InputEncoding = [System.Text.Encoding]::UTF8 } catch {}
+try {
+    $stdinJson = [Console]::In.ReadToEnd()
+} catch {
+    $stdinJson = ""
+}
 
-if (-not $input) {
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+
+if (-not $stdinJson) {
     Write-Host -NoNewline "Claude"
     exit 0
 }
@@ -78,7 +90,27 @@ function Test-VersionGreaterThan([string]$a, [string]$b) {
 }
 
 # ===== Extract data from JSON =====
-$data = $input | ConvertFrom-Json
+# Claude Code can emit invalid JSON when the working directory contains non-ASCII
+# (e.g. Korean) folder names: a backslash immediately following a multibyte character
+# is left unescaped (".../50_앱\HRIS/..."), producing "\H" etc. which is not a valid JSON
+# escape. ConvertFrom-Json then throws, leaving $data null -> the line degrades to
+# "Claude | 0% (0/200k)". Repair invalid escapes and retry so the bar stays correct.
+$data = $null
+try {
+    $data = $stdinJson | ConvertFrom-Json -ErrorAction Stop
+} catch {
+    # Deterministic escape repair (no regex MatchEvaluator scriptblock — that can hang under
+    # PowerShell 5.1). Protect valid escapes \\ and \" with sentinels, double every remaining
+    # stray backslash so it becomes a valid JSON escape, then restore. Leaves valid JSON
+    # byte-for-byte unchanged.
+    try {
+        $S1 = [string][char]0x01; $S2 = [string][char]0x02
+        $fixed = $stdinJson.Replace('\\', $S1).Replace('\"', $S2)
+        $fixed = $fixed.Replace('\', '\\')
+        $fixed = $fixed.Replace($S2, '\"').Replace($S1, '\\')
+        $data = $fixed | ConvertFrom-Json -ErrorAction Stop
+    } catch { $data = $null }
+}
 
 $modelName = if ($data.model.display_name) { $data.model.display_name } else { "Claude" }
 $modelName = ($modelName -replace '\s*\((\d+\.?\d*[kKmM])\s+context\)', ' $1').Trim()  # "(1M context)" → "1M"
