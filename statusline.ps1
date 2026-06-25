@@ -283,10 +283,12 @@ if (Test-Path $cacheFile) {
     $usageData = Get-Content $cacheFile -Raw
 }
 
-# Refresh API cache when stale — runs regardless of builtin rate_limits because
-# extra_usage is only exposed through the OAuth usage endpoint (not stdin JSON).
+# Refresh API cache when stale. Skipped when Claude Code already provides trustworthy
+# builtin rate_limits via stdin (the common case) — the OAuth call only adds extra_usage
+# (overage credits), which isn't worth a blocking network request that can stall the
+# statusline render past Claude Code's timeout and make the whole line flicker.
 # Throttled to cacheMaxAge and stampede-locked via touch for shared panes.
-if ($needsRefresh) {
+if ($needsRefresh -and -not $effectiveBuiltin) {
     # Touch cache immediately (stampede lock: prevent parallel instances from fetching simultaneously)
     if (Test-Path $cacheFile) {
         (Get-Item $cacheFile).LastWriteTime = Get-Date
@@ -304,7 +306,7 @@ if ($needsRefresh) {
                 "User-Agent"     = "claude-code/2.1.34"
             }
             $response = Invoke-RestMethod -Uri "https://api.anthropic.com/api/oauth/usage" `
-                -Headers $headers -Method Get -TimeoutSec 10 -ErrorAction Stop
+                -Headers $headers -Method Get -TimeoutSec 3 -ErrorAction Stop
             $usageData = $response | ConvertTo-Json -Depth 10
             $usageData | Set-Content $cacheFile -Force
         } catch {}
@@ -482,7 +484,7 @@ if ($env:STATUSLINE_CHECK_UPDATES -ne "false") {
         }
         try {
             $vcResponse = Invoke-RestMethod -Uri "https://api.github.com/repos/daniel3303/ClaudeCodeStatusLine/releases/latest" `
-                -Headers @{ "Accept" = "application/vnd.github+json" } -Method Get -TimeoutSec 5 -ErrorAction Stop
+                -Headers @{ "Accept" = "application/vnd.github+json" } -Method Get -TimeoutSec 3 -ErrorAction Stop
             $versionData = $vcResponse | ConvertTo-Json -Depth 10
             $versionData | Set-Content $versionCacheFile -Force
         } catch {
