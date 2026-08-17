@@ -70,12 +70,9 @@ export STATUSLINE_CHECK_UPDATES=false
 
 ## License
 
-MIT
+MIT — see [LICENSE](LICENSE). Copyright (c) 2025 Daniel Oliveira, retained as required.
 
-## Author
+## Credits
 
-Daniel Oliveira
-
-[![Website](https://img.shields.io/badge/Website-FF6B6B?style=for-the-badge&logo=safari&logoColor=white)](https://danielapoliveira.com/)
-[![X](https://img.shields.io/badge/X-000000?style=for-the-badge&logo=x&logoColor=white)](https://x.com/daniel_not_nerd)
-[![LinkedIn](https://img.shields.io/badge/LinkedIn-0077B5?style=for-the-badge&logo=linkedin&logoColor=white)](https://www.linkedin.com/in/daniel-ap-oliveira/)
+- **Original author** — [Daniel Oliveira](https://danielapoliveira.com/) ([daniel3303/ClaudeCodeStatusLine](https://github.com/daniel3303/ClaudeCodeStatusLine)). The status line itself — model parsing, token accounting, rate-limit logic, caching, colour thresholds — is his work.
+- **This fork** — [seung-hr](https://github.com/seung-hr). Windows/PowerShell hardening only: UTF-8 stdin, invalid-JSON-escape repair for non-ASCII paths, flicker fix, unicode mini-bars. `statusline.sh` is unmodified upstream.
